@@ -6,10 +6,21 @@
 - [ ] Connect to LINUX2 and COMPUTE
     - Ensure your language, version, and tooling is available
     - Simple Hello World Test 
-- [ ] Scanner Development
-- [ ] Parser Development
-- [ ] Optimizations...?
+- [ ] Program Arguments
+    - [ ] Add Flag Precedence
 
+- [ ] Scanner Development
+
+- [ ] Parser Development
+
+- [ ] Optimizations...?
+    - [ ] Looking into using int_fastx_t types ? 
+
+- [ ] Other
+    - [ ] Tar files... ?
+
+
+----------------------------------------------
 # Scanner & Parser for ILOC Overview
 Developing the frontend of a compiler -- Scanner & Parser. Our compiler will target the ILOC language, a simple assembly language for a RISC architecture on some  abstract machine. It resmebles canonical assembly with the usage of mnemonic opcodes, speficying registers, printing, and basic arithmetic. 
 
