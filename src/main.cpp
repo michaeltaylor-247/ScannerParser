@@ -3,7 +3,10 @@
 #include <iostream>
 
 int main(int argc, char* argv[]) {
+    // TODO: Elaborate more on the argparser...
     cli::Options options = cli::parseArgs(argc, argv);
+
+
     return 0;
 }
 
@@ -53,8 +56,4 @@ int main(int argc, char* argv[]) {
  *      - INTO (=>)
  *      - EOF
  *      - EOL
- *
- *
- *
- *      
 */
