@@ -1,22 +1,54 @@
 #include "cli.h"
 
 cli::Options cli::parseArgs(int argc, char** argv) {
-    cli::Options opts;
+    // Starts at Mode::Initial
+    cli::Options opts{};
 
-    for(int i = 1; i < argc; ++i) {
-        std::string_view arg = argv[i];
-        
-        // Process flag
-        if(arg[0] == '-' && arg.size() > 1) {
-            switch(arg[1]) {
-                case 'h': opts.mode = Mode::Help; break;
-                case 's': opts.mode = Mode::Scan; break;
-                case 'p': opts.mode = Mode::Parse; break;
-                case 'r': opts.mode = Mode::IR; break;
-                default: opts.error = "Invalid flag passed"; return opts;
+    // Convert to vector & skip arg[0] as that's just the program name
+    std::vector<std::string> args(argv + 1, argv + argc);
+
+
+    int flagCount = 0;
+    for(auto& arg : args) {
+        if(arg[0] != '-') {  // Treat as file(s)
+            if(opts.filename.empty()) opts.filename = std::string(arg);
+            else { 
+                opts.error = "ERROR: Too many files passed";  
+                opts.mode = Mode::Invalid;
+            }
+        }
+
+        // process flags
+        if(arg[0] == '-' && opts.mode != Mode::Invalid) {
+            // Warning for extra flags
+            if(flagCount > 1) std::cout << "WARNING: Too many flags, choosing higest priority\n";
+            flagCount++;
+            
+            // easy check for flag with a valid prefix (ex. -hx)
+            if(arg.size() > 2) {
+                opts.mode = Mode::Invalid;
+                opts.error = "ERROR: Not a valid flag";
+            }
+            else {
+                switch(arg[1]) {
+                    case 'h': opts.mode = (Mode::Help > opts.mode)  ? Mode::Help   : opts.mode; break;
+                    case 'r': opts.mode = (Mode::IR > opts.mode)    ? Mode::IR     : opts.mode; break;
+                    case 'p': opts.mode = (Mode::Parse > opts.mode) ? Mode::Parse  : opts.mode; break;
+                    case 's': opts.mode = (Mode::Scan > opts.mode)  ? Mode::Scan   : opts.mode; break;
+                    default : opts.mode = (Mode::Invalid > opts.mode)  ? Mode::Invalid   : opts.mode; break;
+                }
             }
         }
     }
+
+    // Post Flag Processing
+    if(opts.mode == Mode::Initial)                        opts.mode = Mode::Parse;
+    if(opts.mode == Mode::Invalid)                        opts.error = "ERROR: Invalid Flag Passed";
+    if(opts.filename.empty() && opts.mode != Mode::Help)  {
+        opts.error = "ERROR: No file paseed";
+        opts.mode = Mode::Invalid;
+    }
+
     return opts;
 }
 
@@ -35,4 +67,5 @@ void cli::help() {
     std::cout << "  -r <name>        generates the Intermediate Representation and then prints it in a human-readable format\n";
 
     std::cout << "If no flag is provided, the default behavior is as if the -p flag was specified\n";
+    std::cout << "Flags are intended to be mutually exclusive, providing multiple will follow the flag priority: -h, -r, -p, -s\n";
 }

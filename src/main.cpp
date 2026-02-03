@@ -6,6 +6,25 @@ int main(int argc, char* argv[]) {
     // TODO: Elaborate more on the argparser...
     cli::Options options = cli::parseArgs(argc, argv);
 
+    // Check command line args
+    switch(options.mode) {
+        case cli::Mode::Invalid: 
+            std::cerr << options.error << "\n";
+            std::cout << "See -h for usage\n";
+            exit(1);
+            break;
+        case cli::Mode::Help: 
+            cli::help();
+            exit(1);
+            break;
+        default: break;
+    };
+
+    std::cout << "Mode: " << (int)options.mode << std::endl;
+    std::cout << "filename: " << options.filename << std::endl;
+
+    // open file
+    //FILE* fd = std::fopen(opts.filename.c_str(), "r");
 
     return 0;
 }

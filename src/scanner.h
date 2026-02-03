@@ -59,7 +59,7 @@ struct Token {
     Category tokenCat;      // "part of speech"
     uint64_t line;          // line number
     union lexeme {
-        Opcode op;          // finite categories
+        //Opcode op;          // finite categories
         uint64_t value;     // unbound categories
     };
 };
@@ -68,9 +68,9 @@ struct Token {
 class Scanner {
     private:
         // Data Members
-        file;
-        buffer1;
-        buffer2;
+        //file;
+        //buffer1;
+        //buffer2;
         int currentPosition;
         
         // Internal Methods

@@ -69,3 +69,49 @@ ILOC is a simple assembly language for some RISC processor. The ILOC code will r
 
 
 
+
+----
+#
+
+# Scanner Implementation Strategies:
+Table Driven (using some logic + prebuitl table(s))
+    1. Initialization
+
+    2. scanning loop to model DFA
+       - Read char
+
+       - Simulate DFA traversal..
+           - Lookup the char in a character catgory table
+           - Lookup the (current_state, character_category) in a transition table. 
+           - Thus given a *type* of character and the current state, we can determine the transition
+
+    3. roll back loop for overshooting the tokenc
+       - roll back via stack popping to a previous state
+       - need to be aware of quadratic rollback -- maximal munch scanner (page 64 in textbook)
+
+    4. interpret and report results
+
+    > In generated scanners, these tables can be made quite easily by providing the RE's... i believe this is how lex/
+    flex work...?
+
+
+Direct Coded
+    - Provides a slight speedup to table approach by reducing the cost of determining which transition
+       - The Issue:
+           - Lookup to the character category
+           - Lookup to the transition table 
+           -> thus each chracter ellicits 2 address computations (index into tables) and two load operations (retrieve
+              from tables)
+       - The Solution:
+           - 
+
+
+Hand Coded:
+    - Our approach as it simple with a small ILCO language
+
+    1. Buffering
+       - Maintain some buffer for the character and the current position. Makes rollback simple, lookahead simple, etc. 
+
+
+
+
