@@ -20,11 +20,15 @@ int main(int argc, char* argv[]) {
         default: break;
     };
 
-    std::cout << "Mode: " << (int)options.mode << std::endl;
-    std::cout << "filename: " << options.filename << std::endl;
+    // Attempt to open file
+    FILE* file = std::fopen(options.filename.c_str(), "r");
+    if(!file) {
+        std::cerr << "ERROR: Couldn't open file\n";
+        exit(1);
+    }
+    
+    // Scanner and Parser
 
-    // open file
-    //FILE* fd = std::fopen(opts.filename.c_str(), "r");
 
     return 0;
 }

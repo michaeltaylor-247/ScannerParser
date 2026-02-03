@@ -32,16 +32,13 @@
 
 
 #include <cstdint>
+#include <stdio.h>
 #include <string>
 
 
 // "Parts of Speech" (categories)
 enum Category : uint8_t {
-    MEMOP,      // load, store
-    LOADI,      // loadl
-    ARITHOP,    // add, sub, mult, lshift, rshift
-    OUTPUT,     // output
-    NOP,        // nop
+    OPCODE,     // general
     CONSTANT,   // 1, 2, 3...N
     COMMA,      // ','
     REGISTER,   // r1, r2, r3, rN
@@ -51,38 +48,53 @@ enum Category : uint8_t {
     INVALID     // for invalid tokens
 };
 
-// TODO: decide what to do with the "Categories" and "opcdoes". Cuz sometimes the category is an opcode, other times, 
-// categories can include multiple opcodes. 
+enum class Opcode {
+    load, loadl, store, add, mult, lshift, rshift, output, nop
+};
 
 
 struct Token {
-    Category tokenCat;      // "part of speech"
+    Category cat;           // syntactic cateogry
     uint64_t line;          // line number
-    union lexeme {
-        //Opcode op;          // finite categories
-        uint64_t value;     // unbound categories
-    };
+    union {
+        Opcode op;          // finite categories
+        uint32_t reg;       // register 
+        uint32_t constant;  // constant
+    } lexeme;
 };
 
 
 class Scanner {
+    /*
+     * A couple options to how we want to buffer....
+     * 1. Getline() --> the line is implicitly the buffer, easy handle of eol
+     * 2. Double Buffering technique discussed in the textbook
+     *      - makes rollback easier, but this isn't a huge deal since the ILOC set is quite small with minimal
+     *        ambiguos states from common prefixed tokens....
+     *      - can make buffer size large, reducing the number of reads from the actual file
+     *      - See page 70 for more
+    */
+
     private:
         // Data Members
-        //file;
+        FILE* file;
+        char* line;
+        int currentPosition;
+
+        // For a double buffering implementation:
         //buffer1;
         //buffer2;
-        int currentPosition;
         
         // Internal Methods
         char getNextChar();
         char peekNextChar();
 
     public:
-        Scanner();
+        Scanner(FILE* file);
         ~Scanner();
 
         // Interface for Parser
-        Token nextToken();
+        Token getToken();
 };
 
 

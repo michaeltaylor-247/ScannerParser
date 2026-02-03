@@ -27,7 +27,6 @@ cli::Options cli::parseArgs(int argc, char** argv) {
             // easy check for flag with a valid prefix (ex. -hx)
             if(arg.size() > 2) {
                 opts.mode = Mode::Invalid;
-                opts.error = "ERROR: Not a valid flag";
             }
             else {
                 switch(arg[1]) {
@@ -41,9 +40,13 @@ cli::Options cli::parseArgs(int argc, char** argv) {
         }
     }
 
-    // Post Flag Processing
-    if(opts.mode == Mode::Initial)                        opts.mode = Mode::Parse;
-    if(opts.mode == Mode::Invalid)                        opts.error = "ERROR: Invalid Flag Passed";
+    // Post Flag Processing...
+
+    // No flag was provided --> parse mode
+    if(opts.mode == Mode::Initial) opts.mode = Mode::Parse;
+
+    // 
+    if(opts.mode == Mode::Invalid) opts.error = "ERROR: Invalid Flag Passed";
     if(opts.filename.empty() && opts.mode != Mode::Help)  {
         opts.error = "ERROR: No file paseed";
         opts.mode = Mode::Invalid;
@@ -65,6 +68,8 @@ void cli::help() {
     std::cout << "  -p <name>        scans and parses the input to generate the Intermediate Representation of the input. Reports success or failure.\n";
 
     std::cout << "  -r <name>        generates the Intermediate Representation and then prints it in a human-readable format\n";
+
+    std::cout << "\n";
 
     std::cout << "If no flag is provided, the default behavior is as if the -p flag was specified\n";
     std::cout << "Flags are intended to be mutually exclusive, providing multiple will follow the flag priority: -h, -r, -p, -s\n";
