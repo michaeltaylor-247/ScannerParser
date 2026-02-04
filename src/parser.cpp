@@ -42,7 +42,7 @@ void Parser::parseMemop() {
             }
             else {
                 token = scanner.getToken();
-                if(token.category != Category::EOLine && token.category != Category::EOFile) {
+                if(token.category != Category::EOLine || token.category != Category::EOFile) {
                     std::cerr << "ERROR " << token.lineNumber << ": extra tokens at end of memop\n";
                     hadError = true;
                     skipToEOL();
