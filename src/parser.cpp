@@ -16,7 +16,8 @@ Parser::~Parser() {
 
 // --------------
 // IR 
-// ------------
+// -----------
+
 // node appending
 void Parser::appendIR(IROp* node) {
     if (!head) {
@@ -27,6 +28,19 @@ void Parser::appendIR(IROp* node) {
         tail = node;
     }
     opCount++;
+}
+
+#include "parser.h"
+
+void Parser::printIR(std::ostream& out) {
+    for (IROp* p = head; p != nullptr; p = p->next) {
+        out << p->line
+            << " opcode=" << p->opcode
+            << " op1.SR=" << p->op1.SR
+            << " op2.SR=" << p->op2.SR
+            << " op3.SR=" << p->op3.SR
+            << "\n";
+    }
 }
 
 // ------------

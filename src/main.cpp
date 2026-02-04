@@ -41,7 +41,6 @@ static const char* opcodeSpelling(uint32_t id) {
 }
 
 int main(int argc, char* argv[]) {
-    // Make output appear immediately even when piped by scripts
     std::cout.setf(std::ios::unitbuf);
     std::cerr.setf(std::ios::unitbuf);
 
