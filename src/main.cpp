@@ -41,9 +41,6 @@ static const char* opcodeSpelling(uint32_t id) {
 }
 
 int main(int argc, char* argv[]) {
-    std::cout.setf(std::ios::unitbuf);
-    std::cerr.setf(std::ios::unitbuf);
-
     cli::Options options = cli::parseArgs(argc, argv);
 
     // Check command line args
