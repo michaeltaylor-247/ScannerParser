@@ -219,10 +219,19 @@ void Scanner::catOpcode(Token& token) {
 Token Scanner::getToken() {
     Token token;
 
-    // refill "buffer" if empty
-    while(pos >= line.size()) {
-        if(!refillBuffer()) return { Category::EOFile, 0, (uint32_t)lineNumber };
-        if(line.empty())    return { Category::EOLine, 0, (uint32_t)lineNumber };
+    // Return ELO immediately so we refll buffer as if we are on the same line.
+    if (hasLine && pos >= line.size()) {
+        hasLine = false;
+        return { Category::EOLine, 0, lineNumber };
+    }
+
+    // refill "buffer" if empty and no current line/expression
+    while (!hasLine) {
+        if (!refillBuffer()) return { Category::EOFile, 0, lineNumber };
+        if (line.empty()) {
+            hasLine = false;
+            return { Category::EOLine, 0, lineNumber };
+        }
     }
 
     skipWhiteSpace();

@@ -5,8 +5,6 @@
 #include <fstream>
 #include <cstdint>
 
-
-
 // "Parts of Speech" (categories)
 enum Category : uint8_t {
     MEMOP,      // load, store
@@ -53,6 +51,7 @@ class Scanner {
         std::string line;       // "buffer"
         uint32_t lineNumber;
         size_t pos;
+        bool hasLine;
 
         // Helpers
         void skipWhiteSpace();

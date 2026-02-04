@@ -41,97 +41,101 @@ static const char* opcodeSpelling(uint32_t id) {
 }
 
 int main(int argc, char* argv[]) {
-    // TODO: Elaborate more on the argparser...
+    // Make output appear immediately even when piped by scripts
+    std::cout.setf(std::ios::unitbuf);
+    std::cerr.setf(std::ios::unitbuf);
+
     cli::Options options = cli::parseArgs(argc, argv);
 
     // Check command line args
     switch(options.mode) {
-        case cli::Mode::Invalid: 
+        case cli::Mode::Invalid:
             std::cerr << options.error << "\n";
-            std::cout << "See -h for usage\n";
-            exit(1);
-            break;
-        case cli::Mode::Help: 
             cli::help();
-            exit(1);
+            return 1;
+
+        case cli::Mode::Help:
+            cli::help();
+            return 0;
+
+        default:
             break;
-        default: break;
     };
 
     // Attempt to open file
     std::ifstream file(options.filename);
     if(!file) {
-        std::cerr << "ERROR: Couldn't open file\n";
-        exit(1);
+        std::cerr << "ERROR 0: Couldn't open file\n";
+        return 1;
     }
 
-    // switch on the modes (again) but this time to actually call scanner/parser/both
-    switch(options.mode) {
-        case cli::Mode::Scan: {
-            Scanner scanner(file);
-            while(true) {
-                Token t = scanner.getToken();
+    // -----------------
+    // -s scan only
+    // -----------------
+    if(options.mode == cli::Mode::Scan) {
+        Scanner scanner(file);
 
-                std::cout << t.lineNumber << " " << catName(t.category) << " ";
+        while(true) {
+            Token t = scanner.getToken();
 
-                switch (t.category) {
-                    case MEMOP:
-                    case LOADI:
-                    case ARITHOP:
-                    case OUTPUT:
-                    case NOP:
-                        std::cout << opcodeSpelling(t.lexeme);
-                        break;
-                    case REGISTER:
-                        std::cout << "r" << t.lexeme;
-                        break;
-                    case CONSTANT:
-                        std::cout << t.lexeme;
-                        break;
-                    case COMMA:
-                        std::cout << ",";
-                        break;
-                    case INTO:
-                        std::cout << "=>";
-                        break;
-                    case EOLine:
-                        std::cout << "\\n";
-                        break;
-                    case EOFile:
-                        std::cout << "EOF";
-                        break;
-                    default:
-                        std::cout << t.lexeme;
-                        break;
-                }
+            std::cout << t.lineNumber << " " << catName(t.category) << " ";
 
-                std::cout << "\n";
-
-                if (t.category == EOFile) break;
+            switch(t.category) {
+                case MEMOP:
+                case LOADI:
+                case ARITHOP:
+                case OUTPUT:
+                case NOP:
+                    std::cout << opcodeSpelling(t.lexeme);
+                    break;
+                case REGISTER:
+                    std::cout << "r" << t.lexeme;
+                    break;
+                case CONSTANT:
+                    std::cout << t.lexeme;
+                    break;
+                case COMMA:
+                    std::cout << ",";
+                    break;
+                case INTO:
+                    std::cout << "=>";
+                    break;
+                case EOLine:
+                    std::cout << "EOL";
+                    break;
+                case EOFile:
+                    std::cout << "EOF";
+                    break;
+                default:
+                    std::cout << t.lexeme;
+                    break;
             }
-            return 0;
+
+            std::cout << "\n";
+
+            if(t.category == EOFile) break;
         }
-        case cli::Mode::Parse: {
-            Parser parser(file);
-            bool ok = parser.parse();
-            if(ok) {
-                std::cout << "Valid ILOC\n";
-                return 0;
-            }
-            return 1;
-        }
-        case cli::Mode::IR: {
-            Parser parser(file);
-            bool ok = parser.parse();
-            if(ok) {
-                return 0;
-            }
-            return 1;
-        }
-        default:
-            break;
+
+        return 0;
     }
 
+    // -----------------
+    // -p / default parse
+    // -----------------
+    Parser parser(file);
+    bool ok = parser.parse();
+
+    if(options.mode == cli::Mode::IR) {
+        if(!ok) return 1;
+        parser.printIR(std::cout);
+        return 0;
+    }
+
+    // Parse mode output
+    if(ok) {
+        std::cout << "Valid ILOC\n";
+        return 0;
+    }
     return 1;
 }
 
