@@ -75,7 +75,7 @@ void Parser::parseLoadI() {
             }
             else {
                 token = scanner.getToken();
-                if(token.category != Category::EOLine && token.category != Category::EOFile) {
+                if(token.category != Category::EOLine || token.category != Category::EOFile) {
                     std::cerr << "ERROR " << token.lineNumber << ": extra tokens at end of loadI\n";
                     hadError = true;
                     skipToEOL();
@@ -122,7 +122,7 @@ void Parser::parseArithop() {
                     }
                     else {
                         token = scanner.getToken();
-                        if(token.category != Category::EOLine && token.category != Category::EOFile) {
+                        if(token.category != Category::EOLine || token.category != Category::EOFile) {
                             std::cerr << "ERROR " << token.lineNumber << ": extra tokens at end of arithop\n";
                             hadError = true;
                             skipToEOL();
@@ -143,7 +143,7 @@ void Parser::parseOutput() {
     }
     else {
         token = scanner.getToken();
-        if(token.category != Category::EOLine && token.category != Category::EOFile) {
+        if(token.category != Category::EOLine || token.category != Category::EOFile) {
             std::cerr << "ERROR " << token.lineNumber << ": extra tokens at end of output\n";
             hadError = true;
             skipToEOL();
