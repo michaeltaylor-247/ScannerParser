@@ -1,4 +1,3 @@
-
 #include "cli.h"
 #include "scanner.h"
 #include "parser.h"
@@ -112,16 +111,27 @@ int main(int argc, char* argv[]) {
             }
             return 0;
         }
-        case cli::Mode::Parse: break;
-        case cli::Mode::IR: break;
-        default: break;
+        case cli::Mode::Parse: {
+            Parser parser(file);
+            bool ok = parser.parse();
+            if(ok) {
+                std::cout << "Valid ILOC\n";
+                return 0;
+            }
+            return 1;
+        }
+        case cli::Mode::IR: {
+            Parser parser(file);
+            bool ok = parser.parse();
+            if(ok) {
+                return 0;
+            }
+            return 1;
+        }
+        default:
+            break;
     }
-    
-    // Scanner and Parser
-    Scanner scanner(file);
-    
-    scanner.getToken();
 
-
-    return 0;
+    return 1;
 }
+

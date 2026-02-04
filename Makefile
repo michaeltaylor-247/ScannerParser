@@ -1,6 +1,6 @@
 
 # Variables
-TARGET := 434e
+TARGET := 434fe
 SRC_DIR := src
 BUILD_DIR := build
 

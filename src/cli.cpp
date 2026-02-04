@@ -74,3 +74,4 @@ void cli::help() {
     std::cout << "If no flag is provided, the default behavior is as if the -p flag was specified\n";
     std::cout << "Flags are intended to be mutually exclusive, providing multiple will follow the flag priority: -h, -r, -p, -s\n";
 }
+
