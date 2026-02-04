@@ -2,6 +2,7 @@
 //NETID: 934004252
 
 Within the tar file contains the following files:
+```
 .
 ├── Makefile
 ├── README.md
@@ -13,6 +14,7 @@ Within the tar file contains the following files:
     ├── parser.h
     ├── scanner.cpp
     └── scanner.h
+```
 
 In order to execute, run:
 ```
