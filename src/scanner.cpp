@@ -61,7 +61,7 @@ void Scanner::handleInto(Token& token) {
 void Scanner::handleComment(Token& token) {
     if(peek() == '/') {
         pos = line.size(); 
-        token.category = CATEOGRY::ENDLINE;
+        token.category = Category::ENDLINE;
     }
     else {
         token.category = Category::INVALID;
