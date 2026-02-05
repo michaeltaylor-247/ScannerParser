@@ -16,29 +16,13 @@ static const char* catName(Category c) {
         case REGISTER: return "REGISTER";
         case COMMA:    return "COMMA";
         case INTO:     return "INTO";
-        case EOFile:   return "EOF";
-        case EOLine:   return "EOL";
-        case INVALID:  return "INVALID";
+        case ENDFILE:  return "EOF";
+        case ENDLINE:  return "EOL";
+        case INVALID:  return "ERROR";
         default:       return "UNKNOWN";
     }
 }
 
-// Mapping Opcode enumeration for a token's lexeme to a string for printing
-static const char* opcodeSpelling(uint32_t id) {
-    switch(id) {
-        case 0: return "load";
-        case 1: return "store";
-        case 2: return "loadI";
-        case 3: return "add";
-        case 4: return "sub";
-        case 5: return "mult";
-        case 6: return "lshift";
-        case 7: return "rshift";
-        case 8: return "output";
-        case 9: return "nop";
-        default: return "<?>";
-    }
-}
 
 int main(int argc, char* argv[]) {
     cli::Options options = cli::parseArgs(argc, argv);
@@ -65,9 +49,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // -----------------
-    // -s scan only
-    // -----------------
+
+    // Scan ?
     if(options.mode == cli::Mode::Scan) {
         Scanner scanner(file);
 
@@ -96,11 +79,14 @@ int main(int argc, char* argv[]) {
                 case INTO:
                     std::cout << "=>";
                     break;
-                case EOLine:
+                case ENDLINE:
                     std::cout << "EOL";
                     break;
-                case EOFile:
+                case ENDFILE:
                     std::cout << "EOF";
+                    break;
+                case INVALID:
+                    std::cout << (char)t.lexeme;
                     break;
                 default:
                     std::cout << t.lexeme;
@@ -109,21 +95,19 @@ int main(int argc, char* argv[]) {
 
             std::cout << "\n";
 
-            if(t.category == EOFile) break;
+            if(t.category == ENDFILE) break;
         }
-
         return 0;
     }
 
-    // -----------------
-    // -p / default parse
-    // -----------------
-    Parser parser(file);
+    // by default parse
+    Scanner scanner(file);
+    Parser parser(scanner);
     bool ok = parser.parse();
 
     if(options.mode == cli::Mode::IR) {
         if(!ok) return 1;
-        parser.printIR(std::cout);
+        parser.printIR();
         return 0;
     }
 

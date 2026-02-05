@@ -1,216 +1,294 @@
 #include "scanner.h"
 
 Scanner::Scanner(std::ifstream& file) 
-    : file(file), line(""), lineNumber(-1), pos(0), eofDetected(false), eolDetected(false) {}
+    : file(file), line(""), lineNumber(0), pos(0), eofDetected(false) {
+    refillBuffer();
+}
 
 Scanner::~Scanner() {}
-
 
 // ----------------------
 // Helper Functions
 // ----------------------
-void Scanner::skipWhiteSpace() {
-    while(pos < line.size() && (line[pos] == ' ' || line[pos] == '\t')) pos++;
-}
 
 bool Scanner::refillBuffer() {
-    pos = 0;
-    
-    // eof detection; getline fails
-    if(!getline(file, line)) {
+    // if getline fails, we've reached eof
+    if(!std::getline(file, line)) {
         return false;
     }
-    else {
-        // Handle CRLF: strip trailing '\r'
-        if(!line.empty() && line.back() == '\r') line.pop_back();
-
-        ++lineNumber;
-        return true;
-    }
+    lineNumber++;
+    return true;
 }
 
+// looks ahead in the buffer
 char Scanner::peek() {
-    if(pos >= line.size()) return '\0';
-    return line[pos];
+    return (pos >= line.size()) ? '\0' : line[pos];
 }
 
-char Scanner::advance() {
-    if (pos >= line.size()) return '\0';
-    return line[pos++];
+// consumes a single character
+char Scanner::consume() {
+    return (pos >= line.size()) ? '\0' : line[pos++];
+}
+
+void Scanner::skipWhiteSpace() {
+    // Checks also for the \r on windows
+    while(pos < line.size() && (line[pos] == ' ' || line[pos] == '\t' || line[pos] == '\r')) pos++;
 }
 
 // ----------------------
 // Token Category Processing
 // ----------------------
-void Scanner::catComma(Token& token) {
-    token.category = COMMA;
-    token.lexeme = 0;
 
-    // consume the ','
-    advance();
+void Scanner::handleComma(Token& token) {
+    token.category = Category::COMMA;
+    token.lexeme = 0;
+    token.lineNumber = lineNumber;
 }
 
-void Scanner::catInto(Token& token) {
-    // consume the '='
-    advance();
-
-    if(peek() == '>') {
-        token.category = INTO;
-        token.lexeme = 0;
-        advance(); // consume '>'
+void Scanner::handleInto(Token& token) {
+    char c = peek();
+    if(c == '>') {
+        consume(); // consume '>'
+        token.category = Category::INTO;
     }
     else {
-        token.category = INVALID;
-        token.lexeme = 0;
+        token.category = Category::INVALID;
     }
+    token.lexeme = 0;
+    token.lineNumber = lineNumber;
 }
 
-void Scanner::catRegister(Token& token) {
-    // consume the 'r'
-    advance();
-
-    // no digit following the 'r'
-    if(pos >= line.size() || !std::isdigit(line[pos])) {
-        token.category = INVALID;
-        token.lexeme = 0;
-        return;
+void Scanner::handleComment(Token& token) {
+    if(peek() == '/') {
+        pos = line.size(); 
     }
-
-    // accumulate digits into a number
-    uint32_t reg = 0;
-    while(pos < line.size() && std::isdigit(line[pos])) {
-        reg = reg * 10 + (line[pos] - '0');
-        advance();
-    } 
-
-    token.category = REGISTER;
-    token.lexeme = reg;
+    else {
+        token.category = Category::INVALID;
+    }
+    token.lexeme = 0;
+    token.lineNumber = lineNumber;
 }
 
-void Scanner::catConstant(Token& token) {
-    uint32_t num = 0;
-    while(pos < line.size() && std::isdigit((unsigned char)line[pos])) {
-        num = num * 10 + (line[pos] - '0');
-        advance();
-    } 
-    token.category = CONSTANT;
+void Scanner::handleEOL(Token& token) {
+    token.category = Category::ENDLINE;
+    token.lexeme = 0;
+    token.lineNumber = lineNumber;
+}
+
+void Scanner::handleConstant(Token& token, char c) {
+    token.category = Category::CONSTANT;
+    token.lineNumber = lineNumber;
+
+    // Calculate value directly without string
+    int num = c - '0';
+    while(std::isdigit(peek())) {
+        num = num * 10 + (consume() - '0');
+    }
     token.lexeme = num;
 }
 
-void Scanner::catOpcode(Token& token) {
-    size_t start = pos;
-    while(pos < line.size() && std::isalpha(line[pos])) {
-        advance();
-    }
-    size_t len = pos - start;
+void Scanner::handleWord(Token& token, char c) {
+    token.lineNumber = lineNumber;
+    token.lexeme = 0;
 
-    // Must be followed by blank space (or EOL or comment)
-    if(pos < line.size()) {
-        char t = line[pos];
-        bool okTerm =
-            (t == ' ' || t == '\t') ||
-            (t == '/' && (pos + 1 < line.size()) && line[pos + 1] == '/');
-        if(!okTerm) {
-            token.category = INVALID;
-            token.lexeme = 0;
-            return;
+    // register: r[0-9]+
+    if(c == 'r' && std::isdigit(peek())) {
+        handleRegister(token);
+        return;
+    }
+
+    // default to an invliad state unless we actually gfind a vliad match
+    token.category = Category::INVALID;
+
+    // load / loadi
+    if(c == 'l') {
+        if(peek() == 'o') {
+            consume(); // o
+            if(peek() == 'a') {
+                consume(); // a
+                if(peek() == 'd') {
+                    consume(); // d
+
+                    // confirm its loadi
+                    if(peek() == 'I') {
+                        consume(); // i
+                        token.category = Category::LOADI;
+                        token.lexeme = static_cast<uint32_t>(Opcode::LOADI);
+                        return;
+                    }
+                    // load
+                    token.category = Category::MEMOP;
+                    token.lexeme = static_cast<uint32_t>(Opcode::LOAD);
+                    return;
+                }
+            }
+        }
+        else if(peek() == 's') {
+            // lshift
+            consume(); // s
+            if(peek() == 'h') {
+                consume(); // h
+                if(peek() == 'i') {
+                    consume(); // i
+                    if(peek() == 'f') {
+                        consume(); // f
+                        if(peek() == 't') {
+                            consume(); // t
+                            token.category = Category::ARITHOP;
+                            token.lexeme = static_cast<uint32_t>(Opcode::LSHIFT);
+                            return;
+                        }
+                    }
+                }
+            }
         }
     }
 
-    // Match known opcodes by length + direct char comparisons
-    // lexeme: your opcode id (0..9). Keep consistent with whatever you use elsewhere.
-    token.category = INVALID;
-    token.lexeme = 0;
-
-    // load
-    if(len == 4 &&
-       line[start] == 'l' && line[start+1] == 'o' && line[start+2] == 'a' && line[start+3] == 'd') {
-        token.category = MEMOP;
-        token.lexeme = 0; // LOAD
-        return;
-    }
-
-    // store
-    if(len == 5 &&
-       line[start] == 's' && line[start+1] == 't' && line[start+2] == 'o' && line[start+3] == 'r' && line[start+4] == 'e') {
-        token.category = MEMOP;
-        token.lexeme = 1; // STORE
-        return;
-    }
-
-    // loadI (case-sensitive capital I)
-    if(len == 5 &&
-       line[start] == 'l' && line[start+1] == 'o' && line[start+2] == 'a' && line[start+3] == 'd' && line[start+4] == 'I') {
-        token.category = LOADI;
-        token.lexeme = 2; // LOADI
-        return;
+    // store / sub
+    if(c == 's') {
+        if(peek() == 't') {
+            // store
+            consume(); // t
+            if(peek() == 'o') {
+                consume(); // o
+                if(peek() == 'r') {
+                    consume(); // r
+                    if(peek() == 'e') {
+                        consume(); // e
+                        token.category = Category::MEMOP;
+                        token.lexeme = static_cast<uint32_t>(Opcode::STORE);
+                        return;
+                    }
+                }
+            }
+        }
+        else if(peek() == 'u') {
+            // sub
+            consume(); // u
+            if(peek() == 'b') {
+                consume(); // b
+                token.category = Category::ARITHOP;
+                token.lexeme = static_cast<uint32_t>(Opcode::SUB);
+                return;
+            }
+        }
     }
 
     // add
-    if(len == 3 &&
-       line[start] == 'a' && line[start+1] == 'd' && line[start+2] == 'd') {
-        token.category = ARITHOP;
-        token.lexeme = 3; // ADD
-        return;
-    }
-
-    // sub
-    if(len == 3 &&
-       line[start] == 's' && line[start+1] == 'u' && line[start+2] == 'b') {
-        token.category = ARITHOP;
-        token.lexeme = 4; // SUB
-        return;
+    if(c == 'a') {
+        if(peek() == 'd') {
+            consume(); // d
+            if(peek() == 'd') {
+                consume(); // d
+                token.category = Category::ARITHOP;
+                token.lexeme = static_cast<uint32_t>(Opcode::ADD);
+                return;
+            }
+        }
     }
 
     // mult
-    if(len == 4 &&
-       line[start] == 'm' && line[start+1] == 'u' && line[start+2] == 'l' && line[start+3] == 't') {
-        token.category = ARITHOP;
-        token.lexeme = 5; // MULT
-        return;
+    if(c == 'm') {
+        if(peek() == 'u') {
+            consume(); // u
+            if(peek() == 'l') {
+                consume(); // l
+                if(peek() == 't') {
+                    consume(); // t
+                    token.category = Category::ARITHOP;
+                    token.lexeme = static_cast<uint32_t>(Opcode::MULT);
+                    return;
+                }
+            }
+        }
     }
 
-    // lshift
-    if(len == 6 &&
-       line[start] == 'l' && line[start+1] == 's' && line[start+2] == 'h' &&
-       line[start+3] == 'i' && line[start+4] == 'f' && line[start+5] == 't') {
-        token.category = ARITHOP;
-        token.lexeme = 6; // LSHIFT
-        return;
-    }
-
-    // rshift
-    if(len == 6 &&
-       line[start] == 'r' && line[start+1] == 's' && line[start+2] == 'h' &&
-       line[start+3] == 'i' && line[start+4] == 'f' && line[start+5] == 't') {
-        token.category = ARITHOP;
-        token.lexeme = 7; // RSHIFT
-        return;
+    // rshift  (note: register handled earlier by "r" + digit)
+    if(c == 'r') {
+        if(peek() == 's') {
+            consume(); // s
+            if(peek() == 'h') {
+                consume(); // h
+                if(peek() == 'i') {
+                    consume(); // i
+                    if(peek() == 'f') {
+                        consume(); // f
+                        if(peek() == 't') {
+                            consume(); // t
+                            token.category = Category::ARITHOP;
+                            token.lexeme = static_cast<uint32_t>(Opcode::RSHIFT);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // output
-    if(len == 6 &&
-       line[start] == 'o' && line[start+1] == 'u' && line[start+2] == 't' &&
-       line[start+3] == 'p' && line[start+4] == 'u' && line[start+5] == 't') {
-        token.category = OUTPUT;
-        token.lexeme = 8; // OUTPUT
-        return;
+    if(c == 'o') {
+        if(peek() == 'u') {
+            consume(); // u
+            if(peek() == 't') {
+                consume(); // t
+                if(peek() == 'p') {
+                    consume(); // p
+                    if(peek() == 'u') {
+                        consume(); // u
+                        if(peek() == 't') {
+                            consume(); // t
+                            token.category = Category::OUTPUT;
+                            token.lexeme = static_cast<uint32_t>(Opcode::OUTPUT);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // nop
-    if(len == 3 &&
-       line[start] == 'n' && line[start+1] == 'o' && line[start+2] == 'p') {
-        token.category = NOP;
-        token.lexeme = 9; // NOP
+    if(c == 'n') {
+        if(peek() == 'o') {
+            consume(); // o
+            if(peek() == 'p') {
+                consume(); // p
+                token.category = Category::NOP;
+                token.lexeme = static_cast<uint32_t>(Opcode::NOP);
+                return;
+            }
+        }
+    }
+
+    while (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '_') {
+        consume();
+    }
+
+    token.category = Category::INVALID;
+    token.lexeme = 0;
+}
+
+void Scanner::handleRegister(Token& token) {
+    // already consumed the 'r'...
+
+    // check if next char is a digit
+    if(!std::isdigit(peek())) {
+        token.category = Category::INVALID;
+        token.lexeme = 0;
+        token.lineNumber = lineNumber;
         return;
     }
 
-    // otherwise invalid identifier
-    token.category = INVALID;
-    token.lexeme = 0;
-    return;
-}
+    // First Digit
+    int num = consume() - '0';
+    while(std::isdigit(peek())) {
+        num = num * 10 + (consume() - '0');
+    }
 
+    token.category = Category::REGISTER;
+    token.lexeme = num;
+    token.lineNumber = lineNumber;
+}
 
 
 // ----------------------
@@ -219,50 +297,39 @@ void Scanner::catOpcode(Token& token) {
 Token Scanner::getToken() {
     Token token;
 
-    // Return ELO immediately so we refll buffer as if we are on the same line.
-    if (hasLine && pos >= line.size()) {
-        hasLine = false;
-        return { Category::EOLine, 0, lineNumber };
-    }
-
-    // refill "buffer" if empty and no current line/expression
-    while (!hasLine) {
-        if (!refillBuffer()) return { Category::EOFile, 0, lineNumber };
-        if (line.empty()) {
-            hasLine = false;
-            return { Category::EOLine, 0, lineNumber };
-        }
-    }
-
     skipWhiteSpace();
 
-    // Check that consuming extraneous whitespace didn't put us at eol
-    if(pos >= line.size()) {
-        return { Category::EOLine, 0, lineNumber };
+    // Need to refill buffer if current pos is past line
+    if (pos >= line.size()) {
+        
+        // if getline() in refill buffer fails, it indicates eof
+        if (!refillBuffer()) { 
+            token.category = Category::ENDFILE;
+            token.lineNumber = lineNumber; 
+            return token;
+        }
+
+        pos = 0;
+        token.category = Category::ENDLINE;
+        token.lineNumber = lineNumber - 1; // The line that just finished
+        return token;
     }
 
-    // Comment handling; just move pos to end of line so next token call will refill buffer 
-    if(peek() == '/' && (pos + 1 < line.size()) && line[pos + 1] == '/') {
-        pos = line.size();
-        return { Category::EOLine, 0, lineNumber };
-    }
 
-    // Process Character
-    char c = peek();
-    if(false);
-    else if(c == ',')           catComma(token);
-    else if(c == 'r')           catRegister(token);
-    else if(c == '=')           catInto(token);
-    else if(std::isdigit(c))    catConstant(token);
-    else if(std::isalpha(c))    catOpcode(token);
+    // Actually process the characters
+    char c = consume();
+    if (false);
+    else if (c == ',')           handleComma(token);
+    else if (c == '/')           handleComment(token);
+    else if (c == '=')           handleInto(token);
+    else if (c == '\0')          handleEOL(token);
+    else if (std::isdigit(c))    handleConstant(token, c);
+    else if (std::isalpha(c))    handleWord(token, c);
     else {
-        // characters that have no meaning what so ever like *, ?, ^, etc
-        advance();
-        token.category = INVALID;
-        token.lexeme = 0;
+        token.category = Category::INVALID;
+        token.lineNumber = lineNumber;
+        token.lexeme = c; 
     }
-
-    token.lineNumber = lineNumber;
+    
     return token;
 }
-
