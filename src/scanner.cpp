@@ -61,6 +61,7 @@ void Scanner::handleInto(Token& token) {
 void Scanner::handleComment(Token& token) {
     if(peek() == '/') {
         pos = line.size(); 
+        token.category = CATEOGRY::ENDLINE;
     }
     else {
         token.category = Category::INVALID;
@@ -320,7 +321,12 @@ Token Scanner::getToken() {
     char c = consume();
     if (false);
     else if (c == ',')           handleComma(token);
-    else if (c == '/')           handleComment(token);
+    else if (c == '/') {
+        handleComment(token);
+        if (token.category == Category::ENDLINE) {
+            return getToken();
+        }
+    }        
     else if (c == '=')           handleInto(token);
     else if (c == '\0')          handleEOL(token);
     else if (std::isdigit(c))    handleConstant(token, c);
