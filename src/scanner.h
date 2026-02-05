@@ -19,7 +19,7 @@ enum Category : uint8_t {
     INTO,       // =>
     ENDFILE,    // EOF
     ENDLINE,    // EOL
-    INVALID     // for invalid tokens (optional?) 
+    INVALID     // for invalid tokens
 };
 
 // Specific Opcodes mapping to characters
@@ -37,7 +37,8 @@ enum class Opcode : uint32_t {
     INVALID
 };
 
-// moved this from main... kinda hacky i suppose to avoid double references after includes are expanded...
+// moved this from main... kinda hacky i suppose to avoid multiple declarations after includes are 
+// expanded... something something "inline it" - stack overflow
 // Mapping Opcode enumeration for a token's lexeme to a string for printing
 static inline const char* opcodeSpelling(uint32_t id) {
     switch(id) {

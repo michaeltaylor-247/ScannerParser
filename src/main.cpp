@@ -100,19 +100,19 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    // by default parse
+    // by default, parse
     Scanner scanner(file);
     Parser parser(scanner);
-    bool ok = parser.parse();
+    bool isValidILOC = parser.parse();
 
     if(options.mode == cli::Mode::IR) {
-        if(!ok) return 1;
+        if(!isValidILOC) return 1;
         parser.printIR();
         return 0;
     }
 
     // Parse mode output
-    if(ok) {
+    if(isValidILOC) {
         std::cout << "Valid ILOC\n";
         return 0;
     }

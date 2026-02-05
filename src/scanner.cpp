@@ -322,6 +322,12 @@ Token Scanner::getToken() {
     if (false);
     else if (c == ',')           handleComma(token);
     else if (c == '/') {
+        
+        // A comment should be skipped altogether --> doesn't even generate a token as there is no
+        // semantic meaning.
+        //
+        // So.... set the category to something to signal its not the default cateogry
+        // then check for the signal and make a recurse call the getToken() to just move on
         handleComment(token);
         if (token.category == Category::ENDLINE) {
             return getToken();
